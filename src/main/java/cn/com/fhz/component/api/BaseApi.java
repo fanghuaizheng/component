@@ -40,10 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -292,6 +290,10 @@ public abstract class BaseApi<T> {
 
 
     //通过主键查询，不带高亮的返回
+    /**
+     * @param id 主键值
+     * @return
+     */
     public T findById(String id){
         RestHighLevelClient client = null;
         T t = null;
@@ -304,8 +306,44 @@ public abstract class BaseApi<T> {
             GetRequest request = new GetRequest(indexName, type, id);
 
             GetResponse response = client.get(request);
+            String idMethodName = null;
+            Field[] fields = entityClass.getDeclaredFields();
+            Field[] superFields = entityClass.getSuperclass().getDeclaredFields();
+            for (Field itemField: superFields
+                 ) {
+                itemField.setAccessible(true);
+
+                Annotation[] annotations = itemField.getAnnotations();
+                for (Annotation itemAnnon: annotations
+                     ) {
+                    //如果是主键
+                    if (itemAnnon.annotationType().getSimpleName().equals("id")){
+
+                    }
+                }
+
+                itemField.setAccessible(false);
+            }
+            for (Field itemField: fields
+                 ) {
+                itemField.setAccessible(true);
+
+                Annotation[] annotations = itemField.getAnnotations();
+
+                for (Annotation itemAnnon: annotations
+                     ) {
+                    if (itemAnnon.annotationType().getSimpleName().equals("id")){
+
+                    }
+                }
+
+                itemField.setAccessible(false);
+            }
             if (response.isExists()){
                 String string = response.getSourceAsString();
+                String idValue = response.getId();
+                Map<String, Object> sourceAsMap = response.getSourceAsMap();
+//                sourceAsMap.put("");
 
                 t = (T) JSONObject.parseObject(string,entityClass);
 

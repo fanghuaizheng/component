@@ -8,6 +8,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
+
 /**
  * Created by woni on 18/3/18.
  */
@@ -29,11 +31,18 @@ public class TestUtils extends TestCase{
 
         logger.info("通过id获取到的数据{}->"+ JSONObject.toJSONString(entity));
 
-        logger.info("开始进行删除操作");
+//        logger.info("开始进行删除操作");
+//
+//        SearchResult searchResult = respository.deleteById(id);
+//
+//        logger.info("删除操作结果{}->"+JSONObject.toJSONString(searchResult));
+//
+//        //开始增加操作
+//        entity.setCreatetime(new Date());
+//        SearchResult result = respository.saveOrUpdate(entity, "getId");
+//
+//        logger.info("保存操作的结果：\t"+JSONObject.toJSONString(result));
 
-        SearchResult searchResult = respository.deleteById(id);
-
-        logger.info("删除操作结果{}->"+JSONObject.toJSONString(searchResult));
     }
 
     public void testAdSearch(){

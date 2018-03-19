@@ -1,10 +1,10 @@
-package cn.com.fhz.component.entity;
+package cn.com.fhz.component.base;
 
 /**
- * Created by woni on 18/3/18.
+ * Created by hzfang on 2018/3/19.
+ * 专门用户返回高亮的数据
  */
-public class SearchBaseEntity {
-
+public class HighLightEntity {
     private String highLightValue;
 
     public String getHighLightValue() {
