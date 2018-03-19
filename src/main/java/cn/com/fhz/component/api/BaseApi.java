@@ -306,7 +306,7 @@ public abstract class BaseApi<T> {
             GetRequest request = new GetRequest(indexName, type, id);
 
             GetResponse response = client.get(request);
-            String idMethodName = null;
+            String idName = null;
             Field[] fields = entityClass.getDeclaredFields();
             Field[] superFields = entityClass.getSuperclass().getDeclaredFields();
             for (Field itemField: superFields
@@ -317,36 +317,38 @@ public abstract class BaseApi<T> {
                 for (Annotation itemAnnon: annotations
                      ) {
                     //如果是主键
-                    if (itemAnnon.annotationType().getSimpleName().equals("id")){
-
+                    if (itemAnnon.annotationType().getSimpleName().equals("Id")){
+                        idName = itemField.getName();
                     }
                 }
 
                 itemField.setAccessible(false);
             }
-            for (Field itemField: fields
-                 ) {
-                itemField.setAccessible(true);
-
-                Annotation[] annotations = itemField.getAnnotations();
-
-                for (Annotation itemAnnon: annotations
-                     ) {
-                    if (itemAnnon.annotationType().getSimpleName().equals("id")){
+            if (idName==null){
+                for (Field itemField: fields
+                        ) {
+                    itemField.setAccessible(true);
+                    Annotation[] annotations = itemField.getAnnotations();
+                    for (Annotation itemAnnon: annotations
+                            ) {
+                        if (itemAnnon.annotationType().getSimpleName().equals("Id")){
+                            idName = itemField.getName();
+                        }
 
                     }
-                }
 
-                itemField.setAccessible(false);
+                    itemField.setAccessible(false);
+                }
             }
+
             if (response.isExists()){
-                String string = response.getSourceAsString();
+//                String string = response.getSourceAsString();
                 String idValue = response.getId();
                 Map<String, Object> sourceAsMap = response.getSourceAsMap();
-//                sourceAsMap.put("");
-
-                t = (T) JSONObject.parseObject(string,entityClass);
-
+                if (idName!=null){
+                    sourceAsMap.put(idName,idValue);
+                }
+                t = (T) JSONObject.parseObject(JSONObject.toJSONString(sourceAsMap),entityClass);
             }
 
         }catch (ElasticsearchException elasticsearchException){

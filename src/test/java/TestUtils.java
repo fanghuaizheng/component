@@ -25,7 +25,7 @@ public class TestUtils extends TestCase{
     public void testAdSearchById(){
         AdRespository respository = new AdRespository();
 
-        String id = "92";
+        String id = "91";
 
         AdEntity entity = respository.findById(id);
 

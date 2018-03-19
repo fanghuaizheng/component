@@ -1,6 +1,9 @@
 package entity;
 
 
+import cn.com.fhz.component.annotation.Id;
+import com.alibaba.fastjson.annotation.JSONField;
+
 import java.util.Date;
 
 /**
@@ -10,6 +13,9 @@ import java.util.Date;
 public class AdEntity extends BaseEntity{
 
 
+    @Id
+    @JSONField(serialize = false)
+    private Integer id;
 
     private String name;
 
@@ -43,6 +49,13 @@ public class AdEntity extends BaseEntity{
 
     private Date createtime;
 
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
 
     public String getName() {

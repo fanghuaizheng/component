@@ -9,17 +9,7 @@ import com.alibaba.fastjson.annotation.JSONField;
  */
 public class BaseEntity extends HighLightEntity{
 
-    @Id
-    @JSONField(serialize = false)
-    private Integer id;
 
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
 
 
 }
