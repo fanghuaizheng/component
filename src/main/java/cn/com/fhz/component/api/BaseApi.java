@@ -11,7 +11,6 @@ import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteResponse;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -43,6 +42,7 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -150,6 +150,7 @@ public abstract class BaseApi<T> {
             }
 
         } catch (NoSuchMethodException e) {
+            logger.error("这个方法:\t"+idName+"不存在，请检查参数");
             e.printStackTrace();
         } catch (IllegalAccessException e) {
             e.printStackTrace();
@@ -309,13 +310,18 @@ public abstract class BaseApi<T> {
             String idName = null;
             Field[] fields = entityClass.getDeclaredFields();
             Field[] superFields = entityClass.getSuperclass().getDeclaredFields();
-            for (Field itemField: superFields
+
+            List<Field> fieldList = new ArrayList<Field>();
+
+            getClassAllField(entityClass,fieldList);
+
+            for (Field itemField: fieldList
                  ) {
                 itemField.setAccessible(true);
 
                 Annotation[] annotations = itemField.getAnnotations();
                 for (Annotation itemAnnon: annotations
-                     ) {
+                        ) {
                     //如果是主键
                     if (itemAnnon.annotationType().getSimpleName().equals("Id")){
                         idName = itemField.getName();
@@ -324,25 +330,7 @@ public abstract class BaseApi<T> {
 
                 itemField.setAccessible(false);
             }
-            if (idName==null){
-                for (Field itemField: fields
-                        ) {
-                    itemField.setAccessible(true);
-                    Annotation[] annotations = itemField.getAnnotations();
-                    for (Annotation itemAnnon: annotations
-                            ) {
-                        if (itemAnnon.annotationType().getSimpleName().equals("Id")){
-                            idName = itemField.getName();
-                        }
-
-                    }
-
-                    itemField.setAccessible(false);
-                }
-            }
-
             if (response.isExists()){
-//                String string = response.getSourceAsString();
                 String idValue = response.getId();
                 Map<String, Object> sourceAsMap = response.getSourceAsMap();
                 if (idName!=null){
@@ -430,6 +418,23 @@ public abstract class BaseApi<T> {
 
     }
 
+    /**
+     * 获取传入类及其父类的属性
+     * @param clazz
+     * @return
+     */
+    private void getClassAllField(Class clazz,List<Field> fieldList){
+
+        String simpleName = clazz.getSimpleName();
+        Field[] fields = clazz.getDeclaredFields();
+        fieldList.addAll(Arrays.asList(fields));
+        if (!simpleName.equals("Object")){
+            Class superClazz = clazz.getSuperclass();
+            getClassAllField(superClazz,fieldList);
+        }
+
+
+    }
 
 
     /**
