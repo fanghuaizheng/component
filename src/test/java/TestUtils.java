@@ -1,4 +1,5 @@
 import Repositoty.AdRespository;
+import cn.com.fhz.component.entity.PageRequest;
 import cn.com.fhz.component.entity.SearchResult;
 import cn.com.fhz.component.vo.ElasticSearchResponseVo;
 import com.alibaba.fastjson.JSONObject;
@@ -15,7 +16,6 @@ import java.util.Date;
  */
 
 public class TestUtils extends TestCase{
-
     private static final Logger logger = LoggerFactory.getLogger(TestUtils.class);
 
     public void test(){
@@ -23,7 +23,7 @@ public class TestUtils extends TestCase{
     }
 
     public void testAdSearchById(){
-        AdRespository respository = new AdRespository();
+        AdRespository respository = new AdRespository("/Users/woni/Documents/Intellij/elasticsearch/src/main/resources/elasticsearch.properties");
 
         String id = "91";
 
@@ -31,17 +31,17 @@ public class TestUtils extends TestCase{
 
         logger.info("通过id获取到的数据{}->"+ JSONObject.toJSONString(entity));
 
-//        logger.info("开始进行删除操作");
-//
-//        SearchResult searchResult = respository.deleteById(id);
-//
-//        logger.info("删除操作结果{}->"+JSONObject.toJSONString(searchResult));
-//
-//        //开始增加操作
-//        entity.setCreatetime(new Date());
-//        SearchResult result = respository.saveOrUpdate(entity, "getId");
-//
-//        logger.info("保存操作的结果：\t"+JSONObject.toJSONString(result));
+        logger.info("开始进行删除操作");
+
+        SearchResult searchResult = respository.deleteById(id);
+
+        logger.info("删除操作结果{}->"+JSONObject.toJSONString(searchResult));
+
+        //开始增加操作
+        entity.setCreatetime(new Date());
+        SearchResult result = respository.saveOrUpdate(entity, "getId");
+
+        logger.info("保存操作的结果：\t"+JSONObject.toJSONString(result));
 
     }
 
@@ -52,10 +52,25 @@ public class TestUtils extends TestCase{
 
 //        ElasticSearchResponseVo<AdEntity> byField = respository.findByField(field, value, null);
 
-        ElasticSearchResponseVo<AdEntity> byField = respository.findByField(field, value, null);
+        ElasticSearchResponseVo<AdEntity> byField = respository.findByField(field, value);
 
         logger.info("{}->"+ JSONObject.toJSONString(byField));
     }
 
+    public void testPageAdSearch(){
+        String field = "keyWords";
+        String value = "游戏";
+        AdRespository respository = new AdRespository();
+
+//        ElasticSearchResponseVo<AdEntity> byField = respository.findByField(field, value, null);
+
+        PageRequest<AdEntity> pageRequest = new PageRequest<AdEntity>();
+        pageRequest.setCurrentPage(0);
+        pageRequest.setSize(6);
+
+        ElasticSearchResponseVo<AdEntity> byField = respository.findByField(field, value,pageRequest);
+
+        logger.info("{分页的数据}->"+ JSONObject.toJSONString(byField));
+    }
 
 }

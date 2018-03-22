@@ -24,7 +24,7 @@ public class AdRespository extends BaseApi<AdEntity>{
     public void initElasticSearchConfig(String path) {
 
         //初始化链接配置信息
-        ElasticsearchConnentFactroy.initPool();
+        ElasticsearchConnentFactroy.initPool(path);
         //设置索引信息
         setIndexName(path);
 

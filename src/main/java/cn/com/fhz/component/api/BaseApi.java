@@ -2,6 +2,7 @@ package cn.com.fhz.component.api;
 
 import cn.com.fhz.component.entity.PageRequest;
 import cn.com.fhz.component.entity.SearchResult;
+import cn.com.fhz.component.entity.SortFieldRequest;
 import cn.com.fhz.component.pool.ElasticsearchConnentFactroy;
 import cn.com.fhz.component.utils.CommonUtils;
 import cn.com.fhz.component.utils.ConfigReadUtils;
@@ -35,6 +36,8 @@ import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.ScoreSortBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,6 +110,22 @@ public abstract class BaseApi<T> {
         entityClass = (Class<T>) types[0];
     }
 
+    public SearchResult saveOrUpdate(T t){
+
+       try {
+           String idMethodName = getIdMethodName();
+           if (idMethodName==null){
+               throw new  NoSuchMethodException();
+           }
+           return saveOrUpdate(t,idMethodName);
+       }catch (NoSuchMethodException e){
+           e.printStackTrace();
+           logger.error("主键方法没有找到，请查看是否加入了注释");
+           return SearchResult.ERROR;
+       }
+
+    }
+
 
     /**
      * 保存操作
@@ -168,6 +187,19 @@ public abstract class BaseApi<T> {
         }
 
 
+    }
+
+    public SearchResult batchSaveOrUpdate(List<T> dataList){
+        try {
+            String idMethodName = getIdMethodName();
+            if (idMethodName==null){
+                throw new NoSuchFieldException();
+            }
+            return batchSaveOrUpdate(dataList,idMethodName);
+        }catch (NoSuchFieldException e){
+            logger.error("找不到这个类的主键方法，请添加注释");
+            return SearchResult.ERROR;
+        }
     }
 
     /**
@@ -307,29 +339,8 @@ public abstract class BaseApi<T> {
             GetRequest request = new GetRequest(indexName, type, id);
 
             GetResponse response = client.get(request);
-            String idName = null;
-            Field[] fields = entityClass.getDeclaredFields();
-            Field[] superFields = entityClass.getSuperclass().getDeclaredFields();
+            String idName = getIdMethodName();
 
-            List<Field> fieldList = new ArrayList<Field>();
-
-            getClassAllField(entityClass,fieldList);
-
-            for (Field itemField: fieldList
-                 ) {
-                itemField.setAccessible(true);
-
-                Annotation[] annotations = itemField.getAnnotations();
-                for (Annotation itemAnnon: annotations
-                        ) {
-                    //如果是主键
-                    if (itemAnnon.annotationType().getSimpleName().equals("Id")){
-                        idName = itemField.getName();
-                    }
-                }
-
-                itemField.setAccessible(false);
-            }
             if (response.isExists()){
                 String idValue = response.getId();
                 Map<String, Object> sourceAsMap = response.getSourceAsMap();
@@ -355,14 +366,23 @@ public abstract class BaseApi<T> {
         }
     }
 
+    public ElasticSearchResponseVo<T> findByField(String field,String value){
+        return findByField(field,value,null,null);
+    }
+
+    public ElasticSearchResponseVo<T> findByField(String field,String value,PageRequest<T> pageRequest){
+        return findByField(field,value,pageRequest,null);
+    }
+
     /**
      * 高亮显示查询的字段
      * @param field 字段名称
      * @param value 字段的值
      * @param page 分页的数据，注：此处的分页，是在查询结果的基础上的分页，不是基于整个库的数据，可以为空
+     * @param sortFieldRequest 结果排序方式
      * @return
      */
-    public ElasticSearchResponseVo<T> findByField(String field, String value, PageRequest<T> page){
+    public ElasticSearchResponseVo<T> findByField(String field, String value, PageRequest<T> page,SortFieldRequest sortFieldRequest){
 
         RestHighLevelClient client = null;
 
@@ -381,7 +401,7 @@ public abstract class BaseApi<T> {
 
             client = getClient();
 
-            SearchRequest searchRequest = getSearchRequest(field,value,page);
+            SearchRequest searchRequest = getSearchRequest(field,value,page,sortFieldRequest);
 
             //开始发送请求
             SearchResponse searchResponse = client.search(searchRequest);
@@ -418,6 +438,47 @@ public abstract class BaseApi<T> {
 
     }
 
+
+    /**
+     * 获取类的主键方法名称
+     * @return
+     */
+    private String getIdMethodName(){
+        String idName = null;
+
+        List<Field> fieldList = new ArrayList<Field>();
+
+        getClassAllField(entityClass,fieldList);
+
+        for (Field itemField: fieldList
+                ) {
+            itemField.setAccessible(true);
+
+            Annotation[] annotations = itemField.getAnnotations();
+            for (Annotation itemAnnon: annotations
+                    ) {
+                //如果是主键
+                if (itemAnnon.annotationType().getSimpleName().equals("Id")){
+                    idName = itemField.getName();
+                }
+            }
+
+            itemField.setAccessible(false);
+        }
+
+        if (idName==null){
+            try {
+                Method idMethod = entityClass.getMethod("getId");
+
+                idName = idMethod.getName();
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return idName;
+    }
+
     /**
      * 获取传入类及其父类的属性
      * @param clazz
@@ -449,8 +510,8 @@ public abstract class BaseApi<T> {
         if (page!=null){
             //开始分页
             if (page.getCurrentPage().intValue()>=0){
-                searchSourceBuilder.from(page.getCurrentPage());
-                searchSourceBuilder.size(page.getCurrentPage()*page.getSize());
+                searchSourceBuilder.from(page.getCurrentPage()*page.getSize());
+                searchSourceBuilder.size((page.getCurrentPage()+1)*page.getSize());
             }
         }
 
@@ -481,9 +542,16 @@ public abstract class BaseApi<T> {
      * @param page 分页数据
      * @return
      */
-    private SearchRequest getSearchRequest(String field,String value,PageRequest<T> page){
+    private SearchRequest getSearchRequest(String field, String value, PageRequest<T> page,  SortFieldRequest sortFieldRequest){
 
         SearchSourceBuilder searchSourceBuilder = getSearchSourceBuilderFromParams(field,value,page);
+        if (sortFieldRequest!=null){
+            if ("1".equals(sortFieldRequest.getSortType())){//按照默认得分顺序排序
+                searchSourceBuilder.sort(new ScoreSortBuilder().order(sortFieldRequest.getPx()));
+            }else if ("2".equals(sortFieldRequest.getSortType())){
+                searchSourceBuilder.sort(new FieldSortBuilder(sortFieldRequest.getFieldName()).order(sortFieldRequest.getPx()));
+            }
+        }
 
        return getSearchRequest(searchSourceBuilder);
     }

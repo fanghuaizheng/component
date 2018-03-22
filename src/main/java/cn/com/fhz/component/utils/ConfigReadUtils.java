@@ -23,8 +23,13 @@ public class ConfigReadUtils {
             prop = new PropertiesConfiguration(path);
         } catch (ConfigurationException e) {
 //            e.printStackTrace();
+            path = defaultConfigPath;
             logger.info("当前:\t"+path+"\t没有获取到数据,开始调用默认配置:\t"+defaultConfigPath);
+            logger.error("当前:\t"+path+"\t没有获取到数据,开始调用默认配置:\t"+defaultConfigPath);
             prop = new PropertiesConfiguration(defaultConfigPath);
+        }catch (Exception e){
+            e.printStackTrace();
+            logger.error("从"+path+"获取属性出现错误");
         }finally {
             return prop;
         }
