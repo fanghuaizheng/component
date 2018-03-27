@@ -53,7 +53,7 @@ import java.util.Map;
  * Created by woni on 18/2/28.
  *
  */
-public abstract class BaseApi<T> {
+public class BaseApi<T> {
 
 
 
@@ -93,7 +93,13 @@ public abstract class BaseApi<T> {
     /**
      * 初始化ELasticSearch的配置信息
      */
-    public abstract void initElasticSearchConfig(String path);
+    public void initElasticSearchConfig(String path){
+        //初始化链接配置信息
+        ElasticsearchConnentFactroy.initPool(path);
+        //设置索引信息
+        setIndexName(path);
+
+    }
 
 
     private RestHighLevelClient getClient(){
@@ -254,8 +260,9 @@ public abstract class BaseApi<T> {
 
             }
 
-            logger.info("此次操作数据条数:\t"+dataList+"\t其中"+index+"插入操作\t"+update+"更新");
+            logger.info("此次操作数据条数:\t"+dataList.size()+"\t其中"+index+"插入操作\t"+update+"更新");
 
+            result = SearchResult.BATCH_OP;
 
 
         }catch (Exception e){
@@ -459,7 +466,8 @@ public abstract class BaseApi<T> {
                     ) {
                 //如果是主键
                 if (itemAnnon.annotationType().getSimpleName().equals("Id")){
-                    idName = itemField.getName();
+                    idName = "get"+StringUtils.capitalize(itemField.getName());
+
                 }
             }
 
